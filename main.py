@@ -43,7 +43,7 @@ def consultar_dados():
         cursor = db.cursor()
 
         try:
-            opcao = int(input("1.Consultar por id | 2.Consultar por nome\nEscolha uma opção: "))
+            opcao = int(input("1.Consultar por id | 2.Consultar por nome | 3.Consultar todos\nEscolha uma opção: "))
         except ValueError:
             print("Opção inválida.")
             return
@@ -57,6 +57,11 @@ def consultar_dados():
             nome = input("Digite o nome do produto: ")
             sql = "SELECT * FROM db_loja WHERE nome_produto = %s"
             cursor.execute(sql, (nome, ))
+            resultados = cursor.fetchall()
+
+        elif opcao == 3:
+            sql = "SELECT * FROM db_loja"
+            cursor.execute(sql)
             resultados = cursor.fetchall()
 
         else:
