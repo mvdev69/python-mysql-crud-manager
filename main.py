@@ -12,6 +12,35 @@ def conectar():
         database = os.getenv("DATABASE")
     )
 
+def fazer_login():
+    print("\n--- ACESSO AO SISTEMA ---")
+    usuario_input = input("Usuário: ")
+    senha_input = input("Senha: ")
+
+    try:
+        db = conectar()
+        cursor = db.cursor()
+        
+        # Busca o usuário e traz todos os dados dele
+        sql = "SELECT * FROM usuario WHERE usuario = %s AND senha = %s"
+        cursor.execute(sql, (usuario_input, senha_input))
+        resultado = cursor.fetchone()
+
+        if resultado:
+            # resultado[4] é onde está o 'nivel_acesso' (ajuste conforme a ordem das colunas)
+            nivel = resultado[4] 
+            return nivel  # Retorna 'admin' ou 'funcionario' em vez de True
+        else:
+            return None # Retorna nada se falhar
+
+    except mysql.connector.Error as err:
+        print(f"Erro ao conectar para login: {err}")
+        return None
+    finally:
+        if 'db' in locals() and db.is_connected():
+            cursor.close()
+            db.close()
+
 def criar_dado():
     try:
         db = conectar()
@@ -23,7 +52,7 @@ def criar_dado():
         except ValueError:
             print("ERRO. Digite um valor decimal.")
             return
-        sql = "INSERT INTO db_loja (nome_produto, preco) VALUES (%s, %s)"
+        sql = "INSERT INTO produto (nome_produto, preco) VALUES (%s, %s)"
         cursor.execute(sql, (nome, preco))
 
         db.commit()
@@ -49,18 +78,18 @@ def consultar_dados():
             return
         if opcao == 1:
             id = int(input("Digite o ID do produto: "))
-            sql = "SELECT * FROM db_loja WHERE id_produto = %s"
+            sql = "SELECT * FROM produto WHERE id_produto = %s"
             cursor.execute(sql, (id, )) 
             resultados = cursor.fetchall()
             
         elif opcao == 2:
             nome = input("Digite o nome do produto: ")
-            sql = "SELECT * FROM db_loja WHERE nome_produto = %s"
+            sql = "SELECT * FROM produto WHERE nome_produto = %s"
             cursor.execute(sql, (nome, ))
             resultados = cursor.fetchall()
 
         elif opcao == 3:
-            sql = "SELECT * FROM db_loja"
+            sql = "SELECT * FROM produto"
             cursor.execute(sql)
             resultados = cursor.fetchall()
 
@@ -90,7 +119,7 @@ def atualizar_dado():
         id = input("Digite o id do produto a ser atualizado: ")
         nome = input("Digite o nome do novo produto: ")
         preco = input("Digite o novo valor: ")
-        sql = ("UPDATE db_loja set nome_produto = %s, preco = %s WHERE id_produto = %s")
+        sql = ("UPDATE db_loj set nome_produto = %s, preco = %s WHERE id_produto = %s")
         cursor.execute(sql, (nome, preco, id))
         db.commit()
         print(f"Dado {nome} com o preço de R${preco} atualizados com sucesso!")
@@ -114,7 +143,7 @@ def deletar_dado():
         
         if opcao == 1:
             id = input("Digite o id do produto: ")
-            sql = "DELETE FROM db_loja WHERE id_produto = %s"
+            sql = "DELETE FROM produto WHERE id_produto = %s"
             cursor.execute(sql, (id, ))
             db.commit()
             print("Registro deletado com sucesso!")
@@ -122,7 +151,7 @@ def deletar_dado():
             
         elif opcao == 2:
             nome = input("Digite o nome do produto: ")
-            sql = "DELETE FROM db_loja WHERE nome_produto = %s"
+            sql = "DELETE FROM produto WHERE nome_produto = %s"
             cursor.execute(sql, (nome, ))
             db.commit()
             print("Registro deletado com sucesso!")
@@ -139,15 +168,43 @@ def deletar_dado():
             cursor.close()
             db.close()
 
-while True:
-    print("\n--- SISTEMA DE GESTÃO ---")
-    print("1. Criar | 2. Consultar | 3. Atualizar | 4. Deletar | 0. Sair")
-    print("-" * 65)
-    opcao = input("Escolha uma opção: ")
+# --- FLUXO DE EXECUÇÃO ---
 
-    if opcao == '1': criar_dado()
-    elif opcao == '2': consultar_dados()
-    elif opcao == '3': atualizar_dado()
-    elif opcao == '4': deletar_dado()
-    elif opcao == '0': break
-    else: print("Opção inválida!")
+# O sistema só inicia se o login for bem-sucedido
+nivel_usuario = fazer_login() 
+
+if nivel_usuario:
+    if nivel_usuario == 'admin':
+        print("Acesso de administrador concedido. Você tem permissão total.")
+        while True:
+            print("\n--- SISTEMA DE GESTÃO (ADMIN) ---")
+            print("1. Criar | 2. Consultar | 3. Atualizar | 4. Deletar | 0. Sair")
+            print("-" * 65)
+            opcao = input("Escolha uma opção: ")
+
+            if opcao == '1': criar_dado()
+            elif opcao == '2': consultar_dados()
+            elif opcao == '3': atualizar_dado()
+            elif opcao == '4': deletar_dado()
+            elif opcao == '0':
+                print("Saindo do sistema...")
+                break
+            else:
+                print("Opção inválida!") 
+
+    elif nivel_usuario == 'funcionario':
+        print("Acesso de funcionário concedido. Você tem permissão limitada.")
+        while True:
+            print("\n--- SISTEMA DE GESTÃO (CONSULTA) ---")
+            print("1. Consultar | 0. Sair")
+            print("-" * 65)
+            opcao = input("Escolha uma opção: ")
+
+            if opcao == '1': consultar_dados()
+            elif opcao == '0':
+                print("Saindo do sistema...")
+                break
+            else:
+                print("Opção inválida!")
+else:
+    print("\nFalha no login: Usuário ou senha incorretos.")
