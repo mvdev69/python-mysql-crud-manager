@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     id_produto int auto_increment primary key,
     nome_produto varchar(50) not null,
     preco decimal (10, 2)
+    quantidade int(15) not null
 );
 
 CREATE TABLE IF NOT EXISTS usuarios (

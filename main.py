@@ -22,14 +22,14 @@ def fazer_login():
         cursor = db.cursor()
         
         # Busca o usuário e traz todos os dados dele
-        sql = "SELECT * FROM usuario WHERE usuario = %s AND senha = %s"
+        sql = "SELECT * FROM usuarios WHERE usuario = %s AND senha = %s"
         cursor.execute(sql, (usuario_input, senha_input))
         resultado = cursor.fetchone()
 
         if resultado:
-            # resultado[4] é onde está o 'nivel_acesso' (ajuste conforme a ordem das colunas)
+            # resultado[4] é onde está o 'nivel_acesso'
             nivel = resultado[4] 
-            return nivel  # Retorna 'admin' ou 'funcionario' em vez de True
+            return nivel  # Retorna 'admin' ou 'funcionario'
         else:
             return None # Retorna nada se falhar
 
@@ -52,7 +52,7 @@ def criar_dado():
         except ValueError:
             print("ERRO. Digite um valor decimal.")
             return
-        sql = "INSERT INTO produto (nome_produto, preco) VALUES (%s, %s)"
+        sql = "INSERT INTO produtos (nome_produto, preco) VALUES (%s, %s)"
         cursor.execute(sql, (nome, preco))
 
         db.commit()
@@ -78,18 +78,18 @@ def consultar_dados():
             return
         if opcao == 1:
             id = int(input("Digite o ID do produto: "))
-            sql = "SELECT * FROM produto WHERE id_produto = %s"
+            sql = "SELECT * FROM produtos WHERE id_produto = %s"
             cursor.execute(sql, (id, )) 
             resultados = cursor.fetchall()
             
         elif opcao == 2:
             nome = input("Digite o nome do produto: ")
-            sql = "SELECT * FROM produto WHERE nome_produto = %s"
+            sql = "SELECT * FROM produtos WHERE nome_produto = %s"
             cursor.execute(sql, (nome, ))
             resultados = cursor.fetchall()
 
         elif opcao == 3:
-            sql = "SELECT * FROM produto"
+            sql = "SELECT * FROM produtos"
             cursor.execute(sql)
             resultados = cursor.fetchall()
 
@@ -100,9 +100,9 @@ def consultar_dados():
         if not resultados:
             print("Nenhum registro encontrado.")
         else:
-            for (id_prod, nome_prod, preco) in resultados:
+            for (id_prod, nome_prod, preco, qntd_prod) in resultados:
                 print("-" * 80)
-                print(f"ID: {id_prod}| NOME: {nome_prod}| PRECO {preco:.2f}")
+                print(f"ID: {id_prod}| NOME: {nome_prod}| PRECO {preco:.2f}| QUANTIDADE {qntd_prod}")
         
     except mysql.connector.Error as err:
         print(f"Erro no banco de dados: {err}")
@@ -119,7 +119,7 @@ def atualizar_dado():
         id = input("Digite o id do produto a ser atualizado: ")
         nome = input("Digite o nome do novo produto: ")
         preco = input("Digite o novo valor: ")
-        sql = ("UPDATE db_loj set nome_produto = %s, preco = %s WHERE id_produto = %s")
+        sql = ("UPDATE produtos SET nome_produto = %s, preco = %s WHERE id_produto = %s")
         cursor.execute(sql, (nome, preco, id))
         db.commit()
         print(f"Dado {nome} com o preço de R${preco} atualizados com sucesso!")
@@ -142,19 +142,43 @@ def deletar_dado():
             return
         
         if opcao == 1:
-            id = input("Digite o id do produto: ")
-            sql = "DELETE FROM produto WHERE id_produto = %s"
-            cursor.execute(sql, (id, ))
-            db.commit()
-            print("Registro deletado com sucesso!")
+            id_prod = input("Digite o id do produto: ")
+
+            #buscamos a quantidade atual do produto
+            cursor.execute("SELECT quantidade FROM produtos WHERE id_produto = %s", (id_prod,))
+            produto = cursor.fetchone() # Pega apenas um resultado
+
+            if produto:
+                quantidade_atual = produto[0] 
+
+                if quantidade_atual > 0:
+                    print(f"Não é possível deletar. O produto ainda tem {quantidade_atual} unidades em estoque.")
+                else:
+                    #Se a quantidade for 0, executa o DELETE
+                    cursor.execute("DELETE FROM produtos WHERE id_produto = %s", (id_prod,))
+                    db.commit()
+                    print("Produto deletado com sucesso!")
+            else:
+                print("Produto não encontrado.")
             return
             
         elif opcao == 2:
             nome = input("Digite o nome do produto: ")
-            sql = "DELETE FROM produto WHERE nome_produto = %s"
-            cursor.execute(sql, (nome, ))
-            db.commit()
-            print("Registro deletado com sucesso!")
+            cursor.execute("SELECT quantidade FROM produtos WHERE nome_produto = %s", (nome,))
+            produto = cursor.fetchone() # Pega apenas um resultado
+
+            if produto:
+                quantidade_atual = produto[0] 
+
+                if quantidade_atual > 0:
+                    print(f"Não é possível deletar. O produto ainda tem {quantidade_atual} unidades em estoque.")
+                else:
+                    #Se a quantidade for 0, executa o DELETE
+                    cursor.execute("DELETE FROM produto WHERE nome_produto = %s", (nome,))
+                    db.commit()
+                    print("Produto deletado com sucesso!")
+            else:
+                print("Produto não encontrado.")
             return
         
         else:
